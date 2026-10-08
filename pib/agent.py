@@ -14,6 +14,7 @@ import os
 import re
 import smtplib
 import sys
+import time
 from datetime import datetime
 from zoneinfo import ZoneInfo
 from email.mime.application import MIMEApplication
@@ -218,10 +219,19 @@ def call_gemini(releases, config):
     client = genai.Client(api_key=config["GEMINI_API_KEY"])
     prompt = build_gemini_prompt(releases)
 
-    response = client.models.generate_content(
-        model=config["GEMINI_MODEL"],
-        contents=prompt,
-    )
+    for attempt in range(4):
+        try:
+            response = client.models.generate_content(
+                model=config["GEMINI_MODEL"],
+                contents=prompt,
+            )
+            break
+        except Exception as exc:
+            if getattr(exc, "code", None) not in (429, 500, 502, 503, 504) or attempt == 3:
+                raise
+            delay = 15 * (2 ** attempt)
+            print(f"WARNING: Gemini temporarily unavailable; retrying in {delay} seconds.", flush=True)
+            time.sleep(delay)
 
     raw_text = (response.text or "").strip()
 
