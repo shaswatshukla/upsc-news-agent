@@ -216,13 +216,13 @@ def build_gemini_prompt(releases):
 def call_gemini(releases, config):
     from google import genai
 
-    client = genai.Client(api_key=config["GEMINI_API_KEY"])
+    client = genai.Client(api_key=config["GEMINI_API_KEY"], http_options={"timeout": 120000, "retry_options": {"attempts": 1}})
     prompt = build_gemini_prompt(releases)
 
     for attempt in range(4):
         try:
             response = client.models.generate_content(
-                model=config["GEMINI_MODEL"],
+                model=config["GEMINI_MODEL"] if attempt < 2 else "gemini-3.1-flash-lite",
                 contents=prompt,
             )
             break
