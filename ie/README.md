@@ -1,13 +1,15 @@
-# Indian Express daily UPSC brief
+# Daily Indian Express UPSC brief
 
-This agent runs on GitHub Actions at 09:00 India time (03:30 UTC), independently of the PIB report. It requires no local PC or per-run approvals. GitHub can delay scheduled starts.
+Runs independently of PIB at 09:00 India time (03:30 UTC) using GitHub Actions. No local PC or per-run approvals. Scheduled starts may be delayed by GitHub.
 
-It reads official Indian Express RSS feeds for Explained, Editorials, Columns, India, Economy, World, and Science. It considers the past 48 hours so a morning run includes yesterday's news, selects up to 25 readable unseen articles, and sends a single Gemini batch to produce up to 12 concise UPSC items. Summaries are original study notes with source links; editorial opinions must be distinguished from reported facts. Stories explicitly marked subscription-only, teasers, and unreadable pages are skipped. No browser cookies or subscription bypass are used.
+The agent tries official Indian Express RSS feeds for Explained, Editorials, Columns, India, Economy, World, and Science, considering recent unseen stories from the past 48 hours. Publicly readable articles receive original concise UPSC notes. Subscription-only and incomplete stories are skipped.
 
-Email subject: `Daily Indian Express UPSC Brief - YYYY-MM-DD`. Includes an Overview, GS papers, syllabus topic, factual summary, Prelims pointers, Mains angle, and links in a PDF. No email is sent for an empty new/relevant batch.
+**GitHub's servers currently receive HTTP 403 from Indian Express.** If all publisher feeds are unavailable, the agent uses Google's public News RSS for Indian Express headlines. This fallback does not fetch or bypass blocked or subscription-only articles. The email subject includes [Headlines], and the PDF prominently says HEADLINE-ONLY. Its factual summary is the supplied headline with an access limitation, its Prelims facts list is empty, and its Mains section contains suggested syllabus questions rather than claims about an unseen article. Links go through Google News to the publisher. Full-article access automatically resumes if publisher access becomes available.
 
-Actions secrets: `GEMINI_API_KEY`, `EMAIL_SENDER` (or `SMTP_USER`), `EMAIL_APP_PASSWORD` (or `SMTP_PASSWORD`), `EMAIL_RECIPIENT` (or `EMAIL_TO`). Defaults to Gmail SSL SMTP on port 465 and `gemini-3.1-flash-lite`, a free-tier model. Set repository variable `IE_GEMINI_MODEL` to override it. Temporary 429/5xx Gemini failures are retried. Free-tier quotas and GitHub Actions included minutes still apply.
+Email subject: Daily Indian Express UPSC Brief - YYYY-MM-DD (with [Headlines] in fallback mode). Up to 25 readable articles or indexed headlines go into one Gemini batch; up to 12 relevant items are selected.
 
-Processed article IDs are committed to `ie/seen_article_ids.json` (last 500). PDFs are retained as workflow artifacts for seven days. Do not put credentials in repository files. If SMTP succeeds but the history commit fails, retrying can repeat the email; inspect the run before retrying. Concurrent runs of this job are serialized.
+Actions secrets: GEMINI_API_KEY, EMAIL_SENDER (or SMTP_USER), EMAIL_APP_PASSWORD (or SMTP_PASSWORD), EMAIL_RECIPIENT (or EMAIL_TO). Gmail SSL SMTP on port 465. Default model gemini-3.1-flash-lite; variable IE_GEMINI_MODEL can override. Temporary 429/5xx Gemini failures are retried. Free-tier quotas and GitHub Actions included minutes apply.
 
-The legacy Indian Express `src/` code remains for reference; the active workflow uses `ie/agent.py`. PIB continues separately through `.github/workflows/daily.yml`.
+Processed source identifiers and normalized headline identifiers are saved to ie/seen_article_ids.json, retaining the last 500 identifiers. PDFs are kept as workflow artifacts for 7 days. Empty new/relevant batches send no email. A history-save failure after SMTP success can cause a repeat email on retry; inspect logs before retrying.
+
+The legacy src/ agent remains for reference. The active Indian Express workflow uses ie/agent.py. PIB continues through .github/workflows/daily.yml.

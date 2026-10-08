@@ -24,6 +24,17 @@ assert '?' not in records[0]['link']
 assert records[1]['prid'].startswith('https://indianexpress.com/')
 assert records[0]['title'] == 'Current & policy'
 
+news_response = type('NewsResponse', (), {'raise_for_status': lambda self: None})()
+news_response.content = f'''<rss><channel>
+<item><title>Policy update - The Indian Express</title><link>https://news.google.com/rss/articles/example</link><source url="https://indianexpress.com">The Indian Express</source><pubDate>{yesterday}</pubDate></item>
+<item><title>Other publisher</title><link>https://news.google.com/rss/articles/other</link><source url="https://example.org">Other</source><pubDate>{yesterday}</pubDate></item>
+</channel></rss>'''.encode()
+with patch.object(agent.requests, 'get', return_value=news_response):
+    fallback = agent.fetch_google_news_items(now)
+assert len(fallback) == 1 and fallback[0]['title'] == 'Policy update'
+assert 'SOURCE LIMITATION:' in fallback[0]['preview_text']
+assert fallback[0]['link'].startswith('https://news.google.com/')
+
 class Response:
     content = b''
     def raise_for_status(self): pass
@@ -59,7 +70,7 @@ with patch.object(agent, 'load_config', return_value={'MAX_RELEASES': 25}), patc
 with patch.object(agent, 'load_config', return_value={'MAX_RELEASES': 25}), patch.object(agent, 'fetch_rss_items', return_value=records[:1]), patch.object(agent, 'load_seen_prids', return_value=[]), patch.object(agent, 'fetch_article_text', return_value='Public facts'), patch.object(agent, 'call_gemini', return_value={'overview': '', 'items': []}), patch.object(agent, 'save_seen_prids') as save, patch.object(agent, 'send_email') as email:
     try: agent.main()
     except SystemExit as result: assert result.code == 0
-    save.assert_called_once_with(['123'])
+    save.assert_called_once_with(['123', agent.headline_id(records[0]['title'])])
     email.assert_not_called()
 
 print('PASS: recent article dates, URL deduplication, missing ID, premium skip, public body, history retention, PDF, and both empty outcomes')
